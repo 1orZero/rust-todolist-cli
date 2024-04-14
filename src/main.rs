@@ -1,18 +1,13 @@
-use chrono::Local;
-use rusqlite::{Connection, Result};
+mod db;
+
+use db::TodoDb;
+use rusqlite::Result;
 use std::io::{self};
 
 fn main() -> Result<()> {
-    let conn = Connection::open("todos.db")?;
+    let db = TodoDb::new()?;
 
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS todo_list (
-            id INTEGER PRIMARY KEY,
-            todo TEXT NOT NULL,
-            created_at TEXT NOT NULL
-        )",
-        [],
-    )?;
+    db.create_todos_table()?;
 
     loop {
         println!("Type 'l' to list all todos, or 'a' to add a new todo:");
@@ -23,11 +18,8 @@ fn main() -> Result<()> {
 
         match action.trim() {
             "l" => {
-                let mut stmt = conn.prepare("SELECT todo, created_at FROM todo_list")?;
-                let todo_iter = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
-
-                for todo in todo_iter {
-                    let (todo, created_at): (String, String) = todo?;
+                let todos = db.query_todos()?;
+                for (todo, created_at) in todos {
                     println!("{} - created at {}", todo, created_at);
                 }
             }
@@ -37,18 +29,12 @@ fn main() -> Result<()> {
                 io::stdin()
                     .read_line(&mut new_todo)
                     .expect("Failed to read line");
-                let created_at = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
 
-                conn.execute(
-                    "INSERT INTO todo_list (todo, created_at) VALUES (?1, ?2)",
-                    &[new_todo.trim(), &created_at],
-                )?;
+                db.insert_todo(new_todo.trim())?;
                 println!("Todo added.");
             }
             _ => println!("Invalid option, please type 'l' to list or 'a' to add."),
         }
         println!(); // Print a new line for better readability in the CLI
     }
-
-    Ok(())
 }
