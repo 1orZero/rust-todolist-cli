@@ -1,5 +1,3 @@
-// src/db.rs
-
 use chrono::Local;
 use rusqlite::{params, Connection, Result};
 
