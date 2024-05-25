@@ -11,6 +11,14 @@ impl TodoDb {
         Ok(TodoDb { conn })
     }
 
+    // pub fn get_todo(&self, id: i32) -> Result<String> {
+    //     let mut stmt = self
+    //         .conn
+    //         .prepare("SELECT todo FROM todo_list WHERE id = ?1")?;
+    //     let todo = stmt.query_row(params![id], |row| Ok(row.get(0)?))?;
+    //     Ok(todo)
+    // }
+
     // Method to create the todos table in the database
     pub fn create_todos_table(&self) -> Result<()> {
         self.conn.execute(
@@ -21,6 +29,13 @@ impl TodoDb {
             )",
             [],
         )?;
+        Ok(())
+    }
+
+    // Method to remove a todo from the database
+    pub fn remove_todo(&self, id: i32) -> Result<()> {
+        self.conn
+            .execute("DELETE FROM todo_list WHERE id = ?1", params![id])?;
         Ok(())
     }
 
@@ -35,11 +50,11 @@ impl TodoDb {
     }
 
     // Method to query todos from the database
-    pub fn query_todos(&self) -> Result<Vec<(String, String)>> {
+    pub fn query_todos(&self) -> Result<Vec<(i32, String, String)>> {
         let mut stmt = self
             .conn
-            .prepare("SELECT todo, created_at FROM todo_list")?;
-        let todo_iter = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
+            .prepare("SELECT id, todo, created_at FROM todo_list")?;
+        let todo_iter = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?;
         let mut todos = Vec::new();
         for todo in todo_iter {
             todos.push(todo?);

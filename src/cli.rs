@@ -1,5 +1,6 @@
 use crate::db::TodoDb;
-use std::{error::Error, io};
+use std::num::ParseIntError;
+use std::{error::Error, io}; // Add missing import
 
 pub struct Cli {
     db: TodoDb,
@@ -13,13 +14,17 @@ impl Cli {
     pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
         loop {
             self.print_task_list()?;
-            println!("Type 'a' to add a new todo or 'q' to exit:");
+            println!("Type 'a' to add a new todo, 'd' to delete a todo or 'q' to exit:");
 
             let action = self.read_user_input();
 
             let should_exit = match action.trim() {
                 "a" => {
                     self.add_todo()?;
+                    false
+                }
+                "d" => {
+                    self.delete_todo()?;
                     false
                 }
                 "q" => {
@@ -40,7 +45,6 @@ impl Cli {
     }
 
     fn print_task_list(&self) -> Result<(), rusqlite::Error> {
-        println!("Task List:");
         println!("====================");
         self.list_todos()?;
         println!("====================");
@@ -58,8 +62,8 @@ impl Cli {
 
     fn list_todos(&self) -> Result<(), rusqlite::Error> {
         let todos = self.db.query_todos()?;
-        for (todo, created_at) in todos {
-            println!("{} - created at {}", todo, created_at);
+        for (id, todo, created_at) in todos {
+            println!("{}. {} - created at {}", id, todo, created_at);
         }
         Ok(())
     }
@@ -74,6 +78,19 @@ impl Cli {
         self.db.insert_todo(new_todo.trim())?;
         println!("Todo added.");
         Ok(true)
+    }
+
+    fn delete_todo(&mut self) -> Result<(), rusqlite::Error> {
+        println!("Enter the id of the todo you want to delete:");
+        let mut id = String::new();
+        io::stdin().read_line(&mut id).expect("Failed to read line");
+        let id = id
+            .trim()
+            .parse::<i32>()
+            .map_err(|_: ParseIntError| rusqlite::Error::InvalidQuery)?;
+        self.db.remove_todo(id)?;
+        println!("Todo deleted.");
+        Ok(())
     }
 
     fn exit(&self) -> Result<(), rusqlite::Error> {
