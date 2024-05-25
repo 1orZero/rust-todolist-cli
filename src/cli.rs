@@ -12,16 +12,10 @@ impl Cli {
 
     pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
         loop {
-            println!("Task List:");
-            println!("===================="); // Print a new line for better readability in the CLI
-            self.list_todos()?;
-            println!("===================="); // Print a new line for better readability in the CLI
-            println!(); // Print a new line for better readability in the CLI
+            self.print_task_list()?;
             println!("Type 'a' to add a new todo or 'q' to exit:");
-            let mut action = String::new();
-            io::stdin()
-                .read_line(&mut action)
-                .expect("Failed to read line");
+
+            let action = self.read_user_input();
 
             let should_exit = match action.trim() {
                 "a" => {
@@ -33,12 +27,6 @@ impl Cli {
                     true
                 }
                 _ => {
-                    println!("Task List:");
-                    println!("===================="); // Print a new line for better readability in the CLI
-                    self.list_todos()?;
-                    println!("===================="); // Print a new line for better readability in the CLI
-
-                    println!(); // Print a new line for better readability in the CLI
                     println!("Invalid option, please type 'a' to add or 'q' to exit.");
                     false
                 }
@@ -49,6 +37,23 @@ impl Cli {
             println!(); // Print a new line for better readability in the CLI
         }
         Ok(())
+    }
+
+    fn print_task_list(&self) -> Result<(), rusqlite::Error> {
+        println!("Task List:");
+        println!("====================");
+        self.list_todos()?;
+        println!("====================");
+        println!(); // Print a new line for better readability in the CLI
+        Ok(())
+    }
+
+    fn read_user_input(&self) -> String {
+        let mut action = String::new();
+        io::stdin()
+            .read_line(&mut action)
+            .expect("Failed to read line");
+        action.trim().to_string()
     }
 
     fn list_todos(&self) -> Result<(), rusqlite::Error> {
